@@ -33,21 +33,15 @@ class Port:
 
 class BasicBlock:
     _name: str | None
-    _guard: Event | None
     _body: list[Value]
 
-    def __init__(self, name: str | None = None, guard: Event | None = None):
+    def __init__(self, name: str | None = None):
         self._name = name
-        self._guard = guard
         self._body = []
 
     @property
     def name(self) -> str | None:
         return self._name
-
-    @property
-    def guard(self) -> Event | None:
-        return self._guard
 
     @property
     def body(self) -> list[Value]:
@@ -58,7 +52,7 @@ class BasicBlock:
         self._body = new_body
 
     def __repr__(self) -> str:
-        return f"BasicBlock(name={self._name}, guard={self._guard}, body={self._body})"
+        return f"BasicBlock(name={self._name}, body={self._body})"
 
     def scheduled(self) -> bool:
         # check if all values in body have a fixed time

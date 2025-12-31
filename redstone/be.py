@@ -26,17 +26,23 @@ def to_pyrtl(func: Function, is_top: bool = True) -> pyrtl.Block:
     port2wv: dict[Port, pyrtl.WireVector] = {}
     for port in func.ports:
         if port.type.startswith("input"):
-            wv = pyrtl.Input(bitwidth=port.width, name=port.name or "tmp")
+            wv = pyrtl.Input(bitwidth=port.width, name=port.name or "")
         else:
-            wv = pyrtl.Output(bitwidth=port.width, name=port.name or "tmp")
+            wv = pyrtl.Output(bitwidth=port.width, name=port.name or "")
         port2wv[port] = wv
 
     cnter = pyrtl.Register(bitwidth=cnter_width, name="cnter")
-    with pyrtl.conditional_assignment:
-        with rst:
-            cnter.next |= 0
-        with pyrtl.otherwise:
-            with cnter == 0:
+    # internal registers and wires
+    val2ref: dict[Value, tuple[pyrtl.WireVector, pyrtl.Register]] = {}
+    for t, vals in time2vals.items():
+        for val in vals:
+            if val.type == "phi":
+                # TODO: handle phi nodes
                 pass
+            elif val.type == "read":
+                from_port = val.content["from"]
+                from_wv = port2wv[from_port]
+                
+
 
     return pyrtl.working_block()

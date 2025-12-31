@@ -11,15 +11,14 @@ if __name__ == "__main__":
     adder = rs.Function(name="adder")
 
     # define ports
-    enable_port = rs.Port(name="enable", type="inputpulse", width=1)
     a_port = rs.Port(name="a", type="inputbus", width=32)
     b_port = rs.Port(name="b", type="inputbus", width=32)
     done_port = rs.Port(name="done", type="outputpulse", width=1)
     result_port = rs.Port(name="result", type="outputbus", width=32)
-    adder.ports += [enable_port, a_port, b_port, done_port, result_port]
+    adder.ports += [a_port, b_port, done_port, result_port]
 
     # define body
-    adder_entry = rs.BasicBlock(name="entry", guard=rs.Event(content={"when": enable_port}))
+    adder_entry = rs.BasicBlock(name="entry")
     a_val = rs.Value(type="read", void=False, content={"from": a_port, "time": 0})
     b_val = rs.Value(type="read", void=False, content={"from": b_port, "time": 1})
     sum_val = rs.Value(type="add", void=False, content={"width": 32, "operands": [a_val, b_val]})    # time to be determined by scheduler
