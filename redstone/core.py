@@ -27,7 +27,7 @@ class Value:
 @dataclass(eq=False, frozen=True)
 class Port:
     name: str | None
-    direction: str
+    type: str
     width: int
 
 
