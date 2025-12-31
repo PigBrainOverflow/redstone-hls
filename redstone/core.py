@@ -41,6 +41,11 @@ class BasicBlock:
         self._guard = guard
         self._body = []
 
+    @property
+    def name(self) -> str | None:
+        return self._name
+
+    @property
     def guard(self) -> Event | None:
         return self._guard
 
@@ -84,6 +89,7 @@ class BasicBlock:
             n = len(self._body)
             ts = model.addVars(n, vtype=grb.GRB.INTEGER, name="ts") # non-negative integers
             total_time = model.addVar(vtype=grb.GRB.INTEGER, name="total_time")
+
             model.addConstrs((total_time >= ts[i] for i in range(n)), name="total_time_def")
             for i, val in enumerate(self.body):
                 if val.type == "phi":

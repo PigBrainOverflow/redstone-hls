@@ -29,3 +29,6 @@ if __name__ == "__main__":
     adder_entry.schedule(objective="ASAP", OutputFlag=0)    # silent mode
     for val in sorted(adder_entry.body, key=lambda v: v.content.get("time", -1)):
         print(f"Value Type: {val.type}, Scheduled Time: {val.content.get('time')}")
+
+    block = rs.to_pyrtl(adder_entry, is_top=True)
+    print(block)
