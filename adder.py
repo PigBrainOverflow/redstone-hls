@@ -50,7 +50,6 @@ if __name__ == "__main__":
         print("result = ", sim.inspect("result"))
         print("done = ", sim.inspect("done"))
         print("cnter = ", sim.inspect("cnter"))
-        print("active = ", sim.inspect("active"))
         print("-----")
 
     inspect_all()

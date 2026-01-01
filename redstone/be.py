@@ -33,7 +33,6 @@ def to_pyrtl(func: Function, is_top: bool = True) -> pyrtl.Block:
         port2wv[port] = wv
 
     cnter = pyrtl.Register(bitwidth=cnter_width, name="cnter")
-    active = pyrtl.Register(bitwidth=1, name="active", reset_value=0)
 
     # declare internal registers and wires
     # NOTE: some unused registers may be created
@@ -56,7 +55,7 @@ def to_pyrtl(func: Function, is_top: bool = True) -> pyrtl.Block:
     # connect logic per time step
     for t, vals in time2vals.items():
         with pyrtl.conditional_assignment:
-            with (cnter == t) & (active | go):
+            with (cnter == t) | go: # NOTE: this can be optimized
                 for val in vals:
                     if val.type == "read":
                         from_wv, from_reg = val2ref[val]
@@ -82,18 +81,17 @@ def to_pyrtl(func: Function, is_top: bool = True) -> pyrtl.Block:
                     elif val.type == "emit":
                         to_port = val.content["to"]
                         to_wv = port2wv[to_port]
-                        to_wv <<= (cnter == t) & (active | go)
+                        to_wv <<= (cnter == t) | go
 
-    # counter and active update
+    # counter update
     with pyrtl.conditional_assignment:
-        with active == 0:
+        with cnter == 0:
             with go:
-                active.next |= 1
                 cnter.next |= 1 # start from time 1 because time 0 is handled in this cycle
-        with active:
-            with cnter == max_time:
-                active.next |= 0
-            with cnter < max_time:
+        with pyrtl.otherwise:
+            with cnter >= max_time:
+                cnter.next |= 0
+            with pyrtl.otherwise:
                 cnter.next |= cnter + 1
 
     return pyrtl.working_block()
