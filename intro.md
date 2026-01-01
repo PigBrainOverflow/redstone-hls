@@ -12,7 +12,7 @@ module dyn_dot_product(
     b: rs.input[32],
     done: rs.pulse,
     res: rs.output[64]
-) {
+) [forever] {   # forever is a shorthand for "while (true) {body}"
     let G = await enable;   # wait for enable pulse, return the timestamp
     let n = n@G;    # read n at timestamp G
     let mut i = 0;

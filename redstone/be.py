@@ -55,7 +55,7 @@ def to_pyrtl(func: Function, is_top: bool = True) -> pyrtl.Block:
     # connect logic per time step
     for t, vals in time2vals.items():
         with pyrtl.conditional_assignment:
-            with (cnter == t) | go: # NOTE: this can be optimized
+            with cnter == t if t > 0 else (cnter == 0) & go:
                 for val in vals:
                     if val.type == "read":
                         from_wv, from_reg = val2ref[val]
@@ -81,7 +81,7 @@ def to_pyrtl(func: Function, is_top: bool = True) -> pyrtl.Block:
                     elif val.type == "emit":
                         to_port = val.content["to"]
                         to_wv = port2wv[to_port]
-                        to_wv <<= (cnter == t) | go
+                        to_wv <<= cnter == t if t > 0 else (cnter == 0) & go
 
     # counter update
     with pyrtl.conditional_assignment:

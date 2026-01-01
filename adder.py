@@ -41,7 +41,7 @@ if __name__ == "__main__":
         pyrtl.output_to_verilog(f, add_reset=True, block=block)
 
     # simulate
-    sim = pyrtl.Simulation()
+    sim = pyrtl.Simulation(block=block)
 
     def inspect_all():
         print("go = ", sim.inspect("go"))
@@ -58,6 +58,10 @@ if __name__ == "__main__":
     sim.step({"go": 0, "a": 9999, "b": 20})
     inspect_all()
     sim.step({"go": 0, "a": 0, "b": 0})
+    inspect_all()
+    sim.step({"go": 1, "a": 100, "b": 9999})
+    inspect_all()
+    sim.step({"go": 0, "a": 9999, "b": 200})
     inspect_all()
     sim.step({"go": 0, "a": 0, "b": 0})
     inspect_all()
