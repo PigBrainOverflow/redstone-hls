@@ -61,4 +61,4 @@ module dyn_dot_product_ddr<DDR>(
 }
 ```
 
-Note that `G = await enable` is just a shorthand for `while (!enable) @G` and `Pulse` ports are treated as `0` by default unless emitted.
+Note that `G = await enable` is just a shorthand for `while (!enable) @G` and `Pulse` ports output `0` by default unless emitted.

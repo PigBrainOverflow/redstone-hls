@@ -1,4 +1,5 @@
 import redstone as rs
+import pyrtl
 
 
 if __name__ == "__main__":
@@ -31,8 +32,33 @@ if __name__ == "__main__":
 
     # schedule the block
     adder_entry.schedule(objective="ASAP", OutputFlag=0)    # silent mode
-    for val in sorted(adder_entry.body, key=lambda v: v.content.get("time", -1)):
-        print(f"Value Type: {val.type}, Scheduled Time: {val.content.get('time')}")
+    # for val in sorted(adder_entry.body, key=lambda v: v.content.get("time", -1)):
+    #     print(f"Value Type: {val.type}, Scheduled Time: {val.content.get('time')}")
 
+    # lower to pyrtl
     block = rs.to_pyrtl(adder, is_top=True)
-    print(block)
+    with open("adder.v", "w") as f:
+        pyrtl.output_to_verilog(f, add_reset=True, block=block)
+
+    # simulate
+    sim = pyrtl.Simulation()
+
+    def inspect_all():
+        print("go = ", sim.inspect("go"))
+        print("a = ", sim.inspect("a"))
+        print("b = ", sim.inspect("b"))
+        print("result = ", sim.inspect("result"))
+        print("done = ", sim.inspect("done"))
+        print("cnter = ", sim.inspect("cnter"))
+        print("active = ", sim.inspect("active"))
+        print("-----")
+
+    inspect_all()
+    sim.step({"go": 1, "a": 10, "b": 9999})
+    inspect_all()
+    sim.step({"go": 0, "a": 9999, "b": 20})
+    inspect_all()
+    sim.step({"go": 0, "a": 0, "b": 0})
+    inspect_all()
+    sim.step({"go": 0, "a": 0, "b": 0})
+    inspect_all()
