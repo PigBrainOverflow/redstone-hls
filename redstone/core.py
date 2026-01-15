@@ -85,7 +85,7 @@ class BasicBlock:
             total_time = model.addVar(vtype=grb.GRB.INTEGER, name="total_time")
 
             model.addConstrs((total_time >= ts[i] for i in range(n)), name="total_time_def")
-            for i, val in enumerate(self.body):
+            for i, val in enumerate(self._body):
                 if val.type == "phi":
                     model.addConstr(ts[i] == 0, name=f"phi_node_{i}")
                 elif isinstance(val.content.get("time"), int):
