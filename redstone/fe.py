@@ -337,3 +337,11 @@ def wait(event: Event, at: TVar) -> TVar:
     Return a time variable indicating when the event is triggered.
     """
     return TVar()   # TODO: implement it
+
+
+def instantiate(info: dict[str, Any]) -> dict[str, Any]:
+    """
+    Instantiate a module or primitive.
+    """
+    current_module().instances.append(info)
+    return info

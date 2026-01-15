@@ -55,6 +55,8 @@ with rs.loop(at=rs.TZERO) as (Tcur, Tnext):
     )
 
     Tnext.tset(Tenable + 2)    # next iteration starts after current addition is done
+    # type checker will reject if we set Tnext.tset(Tcur + 2) here, because the end of an iteration is unbounded (depends on when enable pulse arrives) and thus cannot be pipelined with a fixed II.
+    # but if we set Tnext.tset(Tenable + 2), the checker can verify that the next iteration always starts after the current one ends and thus can be scheduled sequentially.
 
 print(rs.current_module())
 
@@ -99,5 +101,62 @@ with rs.loop(at=rs.TZERO) as (Tcur, Tnext):
     Tnext.tset(Tjoint + 1) # next iteration starts after the join point plus 1 cycle
     # note that tphi is different from tmax, because tphi is a run-time join point after branches,
     # while tmax is a compile-time maximum of two time variables
+
+print(rs.current_module())
+
+
+"""
+A function call example: when enabled, if sel == 1, call an external floating point divider module; else compute addition. Finally, output the result and emit done pulse.
+"""
+rs.start_module(name="func_call")
+
+# define ports
+enable = rs.input_pulse(name="enable")
+a = rs.input(width=32, name="a")
+b = rs.input(width=32, name="b")
+sel = rs.input(width=1, name="sel")
+done = rs.output_pulse(name="done")
+out = rs.output(width=32, name="out")
+
+# instantiate an external floating point divider module
+fp_div = rs.instantiate({"module_name": "FP32_Divider", "ports": {
+    "enable": rs.output_pulse(name="fp_div_enable"),
+    "a": rs.output(width=32, name="fp_div_a"),
+    "b": rs.output(width=32, name="fp_div_b"),
+    "done": rs.input_pulse(name="fp_div_done"),
+    "out": rs.input(width=32, name="fp_div_out")
+}})
+
+# define body
+with rs.loop(at=rs.TZERO) as (Tcur, Tnext):
+    Tenable = rs.wait(rs.PulseEvent(enable), at=Tcur)  # wait for enable pulse starting from Tcur, get the time when the pulse arrives
+    aval, bval, selval, outval = rs.values((32, 32, 1, 32), names="aval bval selval outval")
+    rs.at(Tenable).do(
+        rs.NormalAction({"type": "sample", "from": a, "to": aval}),
+        rs.NormalAction({"type": "sample", "from": b, "to": bval}),
+        rs.NormalAction({"type": "sample", "from": sel, "to": selval})
+    )
+    with rs.branch(condition={"type": "bool", "value": selval}, at=Tenable) as br:
+        with br.then(): # division branch, which takes longer time
+            rs.at(Tenable).do(  # call the floating point divider, feed inputs and emit enable pulse
+                rs.NormalAction({"type": "emit", "pulse": fp_div["ports"]["enable"]}),
+                rs.NormalAction({"type": "drive", "from": aval, "to": fp_div["ports"]["a"]}),
+                rs.NormalAction({"type": "drive", "from": bval, "to": fp_div["ports"]["b"]})
+            )
+            Tdiv_done = rs.wait(rs.PulseEvent(fp_div["ports"]["done"]), at=Tenable)  # wait for the done pulse from the divider
+            rs.at(Tdiv_done).do(
+                rs.NormalAction({"type": "sample", "from": fp_div["ports"]["out"], "to": outval})
+            )
+        with br.otherwise():    # addition branch, can be executed in 1 cycle
+            rs.at(Tenable).do(
+                rs.NormalAction({"type": "add", "operands": (aval, bval), "width": 32, "to": outval})
+            )
+    Tjoint = rs.tphi(br)  # get the join point time variable of the branch
+    rs.at(Tjoint).do(
+        rs.NormalAction({"type": "drive", "from": outval, "to": out}),
+        rs.NormalAction({"type": "emit", "pulse": done})
+    )
+
+    Tnext.tset(Tjoint + 1) # next iteration starts after the join point plus 1 cycle
 
 print(rs.current_module())
