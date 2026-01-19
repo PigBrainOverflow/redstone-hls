@@ -1,6 +1,6 @@
 from __future__ import annotations
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 
@@ -251,6 +251,9 @@ class Value:
     def __repr__(self) -> str:
         return f"Value(name={self.name}, width={self.width})"
 
+    def __getitem__(self, key: slice | int) -> Value:
+        return Value(width=self.width, name=self.name)  # TODO: implement slicing
+
 
 def value(width: int, name: str | None = None) -> Value:
     val = Value(width, name)
@@ -345,3 +348,78 @@ def instantiate(info: dict[str, Any]) -> dict[str, Any]:
     """
     current_module().instances.append(info)
     return info
+
+
+@dataclass
+class SwitchAction(Action):
+    selector: Value
+    cases: dict[Any, Region] = field(default_factory=dict)
+    default_region: Region | None = None
+
+    def __repr__(self) -> str:
+        return f"SwitchAction(selector={self.selector}, cases={list(self.cases.keys())}, default_region={self.default_region})"
+
+
+# add near BranchContext
+
+class SwitchContext:
+    module: Module
+    prev_region: Region
+    action: SwitchAction
+
+    def __init__(self, module: Module, prev_region: Region, action: SwitchAction):
+        self.module = module
+        self.prev_region = prev_region
+        self.action = action
+
+    @contextmanager
+    def case(self, value: Any):
+        r = self.action.cases.get(value)
+        if r is None:
+            r = Region()
+            self.action.cases[value] = r
+        self.module._current_region = r
+        try:
+            yield
+        finally:
+            self.module._current_region = self.prev_region
+
+    @contextmanager
+    def default(self):
+        if self.action.default_region is None:
+            self.action.default_region = Region()
+        self.module._current_region = self.action.default_region
+        try:
+            yield
+        finally:
+            self.module._current_region = self.prev_region
+
+
+# add near branch()
+
+@contextmanager
+def switch(*, selector: Value, at: TVar | None = None):
+    """
+    Usage:
+      with switch(selector=sel) as s:
+          with s.case(0):
+              ...
+          with s.case(1):
+              ...
+          with s.default():
+              ...
+    """
+    m = current_module()
+    parent = m.current_region()
+
+    act = SwitchAction(selector=selector)
+    parent.actions.append(act)
+
+    ctx = SwitchContext(module=m, prev_region=parent, action=act)
+
+    prev = m._current_region
+    m._current_region = parent
+    try:
+        yield ctx
+    finally:
+        m._current_region = prev
